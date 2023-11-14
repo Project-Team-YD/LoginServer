@@ -14,6 +14,9 @@ func RegistRpc() {
 func main() {
 	var waitGroup sync.WaitGroup
 
+	server.StartDBConnection()
+	server.RedisConnection()
+
 	//-- GoRoutine Count +1
 	waitGroup.Add(1)
 	go func() {
@@ -21,10 +24,8 @@ func main() {
 		defer waitGroup.Done()
 		//-- Start Grpc server
 		server.StartGrpcServer()
+		RegistRpc()
 	}()
-
-	RegistRpc()
-	server.StartDBConnection()
 
 	waitGroup.Wait()
 	select {}

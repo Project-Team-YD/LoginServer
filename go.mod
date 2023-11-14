@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/go-sql-driver/mysql v1.7.1
+	github.com/google/uuid v1.4.0
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
 )
@@ -11,7 +12,6 @@ require (
 require (
 	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.4.0 // indirect
 	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect

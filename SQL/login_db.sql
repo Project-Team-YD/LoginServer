@@ -1,19 +1,20 @@
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
     uid VARCHAR(45) NOT NULL PRIMARY KEY,
     user_id VARCHAR(45) NOT NULL,
-    user_name VARCHAR(20) DEFAULT NULL,
+    user_name VARCHAR(20) DEFAULT ""
 );
 
-CREATE TABLE items (
+CREATE TABLE IF NOT EXISTS items (
     id int NOT NULL AUTO_INCREMENT,
     item_name VARCHAR(40),
     item_type int NOT NULL,
     img_name VARCHAR(45),
     is_stack BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY(id),
+    INDEX(item_name)
 );
 
-CREATE TABLE item_weapon (
+CREATE TABLE IF NOT EXISTS item_weapon (
     id int NOT NULL,
     item_name VARCHAR(40),
     low_dmg int,
@@ -22,25 +23,24 @@ CREATE TABLE item_weapon (
     atk_range int,
     PRIMARY KEY (id),
     FOREIGN KEY (id) REFERENCES items(id) ON DELETE CASCADE,
-    FOREIGN KEY (item_name) REFERENCES items(item_name) ON UPDATE CASCADE,
+    FOREIGN KEY (item_name) REFERENCES items(item_name) ON UPDATE CASCADE
 );
 
-CREATE TABLE item_effect (
+CREATE TABLE IF NOT EXISTS item_effect (
     id int NOT NULL,
-    max_hp
+    max_hp int,
     regen_hp int,
     short_dmg int,
     long_dmg int,
     atk_spd int,
     atk_range int,
-    def int,
-)
+    def int
+);
 
-CREATE TABLE shop (
+CREATE TABLE IF NOT EXISTS shop (
     id int NOT NULL,
     money_type int,
     price int,
     PRIMARY KEY (id),
-    FOREIGN KEY (id) REFERENCES items(id) ON DELETE CASCADE,
+    FOREIGN KEY (id) REFERENCES items(id) ON DELETE CASCADE
 );
-

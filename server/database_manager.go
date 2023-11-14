@@ -3,63 +3,60 @@ package server
 import (
 	"database/sql"
 	"fmt"
+	util "project_yd/util"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const (
-	dbDriver       = "mysql"
-	dbUser         = "root"
-	dbPass         = "jaycci1@"
-	dbMaxIdleConns = 10 // 최대 유휴 연결 수
-	dbMaxOpenConns = 20 // 최대 열린 연결 수
-)
-const (
-	loginDB   = "login_db"
-	loginIp   = "13.125.254.231"
-	loginPort = "3306"
-	logDB     = "log_db"
-	logIp     = "13.125.254.231"
-	logPort   = "3306"
-
-	maxIdleConnect = 10
-	maxOpenConnect = 10
-)
-
 type GameDatabase struct {
-	Database map[string]*sql.DB
+	Login *sql.DB
+	Game  *sql.DB
+	Log   *sql.DB
 }
 
 var DBManager *GameDatabase
 
 func StartDBConnection() {
 	println("Start DB Connect!!")
-	DBManager = &GameDatabase{
-		Database: make(map[string]*sql.DB),
-	}
-	//-- Login DB Open
-	login := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, loginIp, loginPort, loginDB)
 
-	db, err := sql.Open(dbDriver, login)
+	//-- Login DB Open
+	login := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", util.DbUser, util.DbPass, util.LoginDBIp, util.LoginDBPort, util.LoginDB)
+
+	db, err := sql.Open(util.DbDriver, login)
 	if err != nil {
 		println("LoginDB::", err.Error())
 	}
-	defer db.Close()
+	db.SetMaxIdleConns(util.MaxIdleConnect)
+	db.SetMaxOpenConns(util.MaxOpenConnect)
+	loginDB := db
 
-	DBManager.Database["login"] = db
+	//-- Game DB Open
+	game := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", util.DbUser, util.DbPass, util.GameDBIp, util.GameDBPort, util.GameDB)
+
+	db, err = sql.Open(util.DbDriver, game)
+	if err != nil {
+		println("GameDB::", err.Error())
+	}
+	db.SetMaxIdleConns(util.MaxIdleConnect)
+	db.SetMaxOpenConns(util.MaxOpenConnect)
+	gameDB := db
 
 	//-- Log DB Open
-	log := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, logIp, logPort, logDB)
+	log := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", util.DbUser, util.DbPass, util.LogDBIp, util.LogDBPort, util.LogDB)
 
-	db, err = sql.Open(dbDriver, log)
+	db, err = sql.Open(util.DbDriver, log)
 	if err != nil {
 		println("LogDB::", err.Error())
 	}
-	defer db.Close()
 
-	DBManager.Database["log"] = db
+	db.SetMaxIdleConns(util.MaxIdleConnect)
+	db.SetMaxOpenConns(util.MaxOpenConnect)
+	logDB := db
 
-	db.SetMaxIdleConns(maxIdleConnect)
-	db.SetMaxOpenConns(maxOpenConnect)
+	DBManager = &GameDatabase{
+		Login: loginDB,
+		Game:  gameDB,
+		Log:   logDB,
+	}
 	println("End DB Connect!!")
 }

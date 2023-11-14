@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	server "project_yd/server"
+	"project_yd/server/server_packet/request_packet"
 	request "project_yd/server/server_packet/request_packet"
+	"project_yd/server/server_packet/response_packet"
 	response "project_yd/server/server_packet/response_packet"
 	"project_yd/util"
 
@@ -22,13 +24,13 @@ func LoginRpc(payload string) string {
 	if err != nil {
 		return util.ResponseErrorMessage(util.BadRequest, err.Error())
 	}
-
-	var userId string
+	println("TEST:: payload:", payload)
+	var UUID string
 	ctx := context.Background()
 	//-- 로그인 정보 가져오기
-	db := server.DBManager.Database[util.LOGIN]
+	db := server.DBManager.Login
 	loginSql := `SELECT uid FROM account WHERE user_id = ?`
-	err = db.QueryRowContext(ctx, loginSql, requestPacket.Id).Scan(&userId)
+	err = db.QueryRowContext(ctx, loginSql, requestPacket.Id).Scan(&UUID)
 
 	//-- 등록된 정보가 없으므로 신규 유저로 처리
 	responsePacket := response.Login{}
@@ -41,15 +43,38 @@ func LoginRpc(payload string) string {
 			return util.ResponseErrorMessage(util.ServerError, err.Error())
 		}
 
+		heartBeat, err := server.SetHeartBeat(UUID)
+		if err != nil {
+			return util.ResponseErrorMessage(util.ServerError, err.Error())
+		}
+
 		responsePacket.UUID = uid
+		responsePacket.HeartBeat = heartBeat
 		responsePacket.Message = "Success"
-		responsePacket.MessageCode = util.Success
+		responsePacket.Code = util.Success
 
 		return util.ResponseMessage(responsePacket)
 	}
+	if err != nil {
+		return util.ResponseErrorMessage(util.ServerError, err.Error())
+	}
 
-	responsePacket.UUID = userId
-	responsePacket.MessageCode = 200
+	//CheckDuplicateLogin(UUID)
+	//-- Redis에서 HeartBeat Key가 존재하는지 체크후 존재할경우 중복로그인 처리
+	if server.HasHeartBeat(UUID) {
+		DuplicateLogin(UUID)
+		return util.ResponseErrorMessage(util.Conflict, "Duplicate Login")
+	}
+
+	heartBeat, err := server.SetHeartBeat(UUID)
+	println("UUID::", UUID, "/SetHeartBeat::", heartBeat)
+	if err != nil {
+		return util.ResponseErrorMessage(util.ServerError, err.Error())
+	}
+
+	responsePacket.UUID = UUID
+	responsePacket.HeartBeat = heartBeat
+	responsePacket.Code = util.Success
 	responsePacket.Message = "Sueccess"
 
 	return util.ResponseMessage(responsePacket)
@@ -69,4 +94,18 @@ func CreateNameUUID(name string) string {
 	nameUUID := uuid.NewSHA1(baseUUID, nameByte)
 	println("CreateNameUUID:: name:", name, "/uuid:", nameUUID.String())
 	return nameUUID.String()
+}
+
+func DuplicateLogin(UUID string) {
+	requestPacket := request_packet.DuplicateLogin{}
+	requestPacket.UUID = UUID
+
+	response := server.GlobalGrpcMessage("duplicate_login", requestPacket)
+	responsePacket := response_packet.DuplicateLogin{}
+	json.Unmarshal([]byte(response), &responsePacket)
+
+	if responsePacket.Code != util.Success {
+		println("DuplicateLogin Error")
+		println(responsePacket.Message)
+	}
 }
