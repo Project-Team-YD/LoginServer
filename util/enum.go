@@ -10,6 +10,18 @@ const (
 const (
 	HEARTBEAT = 1
 )
+
+const (
+	WEAPON = 0
+	EFFECT = 1
+)
+const (
+	DAGGER     = 0
+	SWORD      = 1
+	GUN        = 2
+	NINJA_STAR = 3
+)
+
 const (
 	LOGIN = "login_db"
 	GAME  = "game_db"

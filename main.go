@@ -25,6 +25,8 @@ func main() {
 		//-- Start Grpc server
 		server.StartGrpcServer()
 		RegistRpc()
+		//-- Notification서버 연결
+		server.ConnectToNotificationServer()
 	}()
 
 	waitGroup.Wait()

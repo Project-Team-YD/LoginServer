@@ -2,13 +2,12 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	global_grpc "project_yd/grpc"
 	"project_yd/util"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const SERVER_PORT = ":8081"
@@ -19,31 +18,31 @@ var Client global_grpc.GlobalGRpcServiceClient
 func ConnectToNotificationServer() {
 	conn, err := grpc.Dial(
 		util.NotificationIp+util.NotificationPort,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})))
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		println("Connect To NotificationServer Error!!")
 		println(err.Error())
 		return
 	}
-	defer conn.Close()
+	//defer conn.Close()
 
 	Client = global_grpc.NewGlobalGRpcServiceClient(conn)
 }
 
-func GlobalGrpcMessage(rpcKey string, data interface{}) string {
+func GlobalGrpcMessageToNotificationServer(rpcKey string, data interface{}) string {
 	message, err := json.Marshal(data)
 	if err != nil {
 		println("GlobalGrpcMessage Error!!")
 		println(err.Error())
 		return ""
 	}
-	request := &global_grpc.GlobalGrpcRequest{
+	request := global_grpc.GlobalGrpcRequest{
 		RpcKey:  rpcKey,
 		Message: string(message),
 	}
 
-	response, err := Client.GlobalGRpc(context.Background(), request)
+	response, err := Client.GlobalGRpc(context.Background(), &request)
 
 	if err != nil {
 		println("GlobalGrpcMessage Response Error!!")

@@ -62,6 +62,7 @@ func GetRedis(key string) (string, error) {
 	return value, nil
 }
 func HasRedisKey(key string) bool {
+
 	exists, err := RedisManager.Exists(key).Result()
 	if err != nil {
 		println("GetRedisKey Error")
@@ -78,13 +79,16 @@ const HEARTBEAT_KEY = "HeartBeat_"
 
 func SetHeartBeat(UUID string) (string, error) {
 	key := HEARTBEAT_KEY + UUID
-	value := HEARTBEAT_KEY + time.Now().String()
+	currentTime := time.Now()
+	layout := "2006-01-02 15:04:05"
+	formattedTime := currentTime.Format(layout)
+	value := HEARTBEAT_KEY + formattedTime
 	err := SetRedis(key, value)
 	if err != nil {
 		println("Set HeartBeat Error")
 		return "", err
 	}
-
+	println("SetHeartBeat")
 	return value, nil
 }
 func GetHeartBeat(UUID string) (string, error) {
@@ -94,10 +98,12 @@ func GetHeartBeat(UUID string) (string, error) {
 		println("GetHeartBeat Error!!")
 		return "", err
 	}
+	println("GetHeartBeat")
 	return heartBeat, nil
 }
 func HasHeartBeat(UUID string) bool {
 	key := HEARTBEAT_KEY + UUID
 	result := HasRedisKey(key)
+	println("Check->HasHeartBeat")
 	return result
 }

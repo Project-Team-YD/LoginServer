@@ -26,18 +26,18 @@ func LoginRpc(payload string) string {
 	}
 	println("TEST:: payload:", payload)
 	var UUID string
+	var userName string
 	ctx := context.Background()
 	//-- 로그인 정보 가져오기
 	db := server.DBManager.Login
-	loginSql := `SELECT uid FROM account WHERE user_id = ?`
-	err = db.QueryRowContext(ctx, loginSql, requestPacket.Id).Scan(&UUID)
-
+	loginSql := `SELECT uid, user_name FROM account WHERE user_id = ?`
+	err = db.QueryRowContext(ctx, loginSql, requestPacket.Id).Scan(&UUID, &userName)
 	//-- 등록된 정보가 없으므로 신규 유저로 처리
 	responsePacket := response.Login{}
 	if err == sql.ErrNoRows {
 		//-- uuid 생성
 		uid := CreateNameUUID(requestPacket.Id)
-		createUUIDSql := `INSERT INTO account (uid, user_id) VALUES(?,?)`
+		createUUIDSql := `INSERT INTO account (uid, user_id, money) VALUES(?,?, 10000)`
 		_, err := db.ExecContext(ctx, createUUIDSql, uid, requestPacket.Id)
 		if err != nil {
 			return util.ResponseErrorMessage(util.ServerError, err.Error())
@@ -45,6 +45,14 @@ func LoginRpc(payload string) string {
 
 		heartBeat, err := server.SetHeartBeat(UUID)
 		if err != nil {
+			return util.ResponseErrorMessage(util.ServerError, err.Error())
+		}
+
+		//-- 인벤토리 기본템 추가
+		gameDB := server.DBManager.Game
+		invenSql := `INSERT INTO inventory (uid, item_id, item_count, enchant_level) VALUES(?, 0, 1, 0)`
+		_, invenErr := gameDB.ExecContext(ctx, invenSql, uid)
+		if invenErr != nil {
 			return util.ResponseErrorMessage(util.ServerError, err.Error())
 		}
 
@@ -58,10 +66,12 @@ func LoginRpc(payload string) string {
 	if err != nil {
 		return util.ResponseErrorMessage(util.ServerError, err.Error())
 	}
+	println("DB Get UUID:", UUID)
 
 	//CheckDuplicateLogin(UUID)
 	//-- Redis에서 HeartBeat Key가 존재하는지 체크후 존재할경우 중복로그인 처리
 	if server.HasHeartBeat(UUID) {
+		println("DuplicateLogin UUID:", UUID)
 		DuplicateLogin(UUID)
 		return util.ResponseErrorMessage(util.Conflict, "Duplicate Login")
 	}
@@ -73,6 +83,7 @@ func LoginRpc(payload string) string {
 	}
 
 	responsePacket.UUID = UUID
+	responsePacket.UserName = userName
 	responsePacket.HeartBeat = heartBeat
 	responsePacket.Code = util.Success
 	responsePacket.Message = "Sueccess"
@@ -100,10 +111,15 @@ func DuplicateLogin(UUID string) {
 	requestPacket := request_packet.DuplicateLogin{}
 	requestPacket.UUID = UUID
 
-	response := server.GlobalGrpcMessage("duplicate_login", requestPacket)
+	payload := server.GlobalGrpcMessageToNotificationServer("duplicate_login", requestPacket)
+	println("DuplicateLogin payload:", payload)
 	responsePacket := response_packet.DuplicateLogin{}
-	json.Unmarshal([]byte(response), &responsePacket)
 
+	err := json.Unmarshal([]byte(payload), &responsePacket)
+	if err != nil {
+		println("DuplicationLogin Json Unmarshal Error")
+		println(err.Error())
+	}
 	if responsePacket.Code != util.Success {
 		println("DuplicateLogin Error")
 		println(responsePacket.Message)
